@@ -8,6 +8,7 @@ import ast
 
 from sqlalchemy import false
 
+# Keys for Trusted Authority Process
 #Generate private and public keys
 random_generator = Random.new().read
 private_key = RSA.generate(1024, random_generator)
@@ -44,12 +45,13 @@ def client_registration(connection, address):
     name = connection.recv(2048)
     name = name.decode()
 
+    # Registration Authority Process
     # Key for registration (password) -> to be updated based on security protocol
     connection.send(str.encode('Registration Key: '))
     key = connection.recv(2048)
     key = key.decode()
 
-    # key hash
+    # key hash Registration Authority process works with Trusted Authority process
     key = hashlib.sha256(str.encode(key)).hexdigest()
 
     # If not in HashTable, register
@@ -64,11 +66,10 @@ def client_registration(connection, address):
             print("{:<8} {:<20}".format(label, num))
         print("______________________________________________")
 
-    # Check password if already in HashTable (we may not need this part)
     else:
+        # Check password if already in HashTable 
         if HashTable[name] == key:
             connection.send(str.encode('Successful (key matches).'))
-            #connection.send(name, ' Successful in Connecting.')
             message = connection.recv(2048)
             message = message.decode()
             print(message)
@@ -77,6 +78,7 @@ def client_registration(connection, address):
                 connection.send(public_key.exportKey())
                 print ("Public key sent to client.")
             connected = True
+            # Encryption process is part of Trusted Authority Process
             while connected:
                 connection.send(str.encode('Enter Message: '))
                 encrypted_text = connection.recv(2048)

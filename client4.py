@@ -12,13 +12,13 @@ if __name__ == "__main__":
     # connect to the server on local computer
     socket.connect(('127.0.0.1', port))
 
-    # User input for potential Vehicle Name (Registration)
+    # User input for potential Vehicle Name (Registration Authority Process)
     response = socket.recv(2048)
     name = input(response.decode())
     socket.send(str.encode(name))
 
-    # User input for Key -> To be modified so that it asks for key
-    # only if already registered, otherwise system assigns key
+    # User input for Key -> To be modified so that it asks for key-
+    # -only if already registered, otherwise system assigns key
     response = socket.recv(2048)
     key = input(response.decode())
     socket.send(str.encode(key))
@@ -36,7 +36,6 @@ if __name__ == "__main__":
         socket.send(str.encode(message))
 
         publickey = (socket.recv(2048))
-        #response = response.decode()
         print(publickey)
 
         while True:
