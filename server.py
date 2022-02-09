@@ -1,6 +1,18 @@
 import socket
 import threading
 import hashlib
+from Crypto.PublicKey import RSA
+from Crypto import Random
+from Crypto.Cipher import PKCS1_OAEP
+import ast
+
+from sqlalchemy import false
+
+#Generate private and public keys
+random_generator = Random.new().read
+private_key = RSA.generate(1024, random_generator)
+public_key = private_key.publickey()
+encrypt_str = "encrypted_message="
 
 # Create Socket
 socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
@@ -26,8 +38,7 @@ socket.listen(5)
 # Hash Table for Clients (i.e., vehicles)
 HashTable = {}
 
-
-def client_registration(connection):
+def client_registration(connection, address):
 
     connection.send(str.encode('Registration Name: '))
     name = connection.recv(2048)
@@ -57,30 +68,41 @@ def client_registration(connection):
     else:
         if HashTable[name] == key:
             connection.send(str.encode('Successful (key matches).'))
-            connection.send(name, ' Successful in Connecting.')
+            #connection.send(name, ' Successful in Connecting.')
+            message = connection.recv(2048)
+            message = message.decode()
+            print(message)
+
+            if message == "Client: OK":
+                connection.send(public_key.exportKey())
+                print ("Public key sent to client.")
+            connected = True
+            while connected:
+                connection.send(str.encode('Enter Message: '))
+                encrypted_text = connection.recv(2048)
+                decryptor = PKCS1_OAEP.new(private_key)
+                decrypted = decryptor.decrypt(ast.literal_eval(str(encrypted_text)))
+                print ("Decrypted message = " + str(decrypted.decode()))
+                connection.send(str.encode("Server: OK"))
+                #connected = False
         else:
-            connection.send(str.encode('Unsuccessful (key does not match'))
+            connection.send(str.encode('Unsuccessful (key does not match)'))
             print(name, ' Unsuccessful in Connecting.')
 
-    while True:
-        break
     connection.close()
 
+def start():
+    # While loop (main loop)
+    numConnections = 0
+    while True:
+        # Connect to Client
+        Client, address = socket.accept()
+        clientHandler = threading.Thread(target=client_registration, args=(Client,address))
+        clientHandler.start()
+        numConnections += 1
 
-# While loop (main loop)
-while True:
+        print('Connection Request Number: ' + str(numConnections))
 
-    # Connect to Client
-    Client, address = socket.accept()
-
-    clientHandler = threading.Thread(
-        target=client_registration,
-        args=(Client,)
-    )
-
-    clientHandler.start()
-    numConnections += 1
-
-    print('Connection Request Number: ' + str(numConnections))
-
-socket.close()
+if __name__ == "__main__":
+    print("Server is starting")
+    start()
