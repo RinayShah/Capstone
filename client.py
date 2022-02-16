@@ -28,9 +28,16 @@ if __name__ == "__main__":
     response = response.decode()
     print(response)
 
-    #send message
+    # send message
     if response == "Vehicle has been Registered.":
         socket.close()
+
+    # If key 
+    elif response == 'Unsuccessful (key does not match)': 
+        print("Key and Vehicle Name do not match Registered Credentials\n")
+        socket.close()
+        exit()
+
     else:
         message = "Client: OK"
         socket.send(str.encode(message))

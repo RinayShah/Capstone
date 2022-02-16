@@ -53,6 +53,7 @@ def client_registration(connection, address):
     key = hashlib.sha256(str.encode(key)).hexdigest()
 
     # If not in HashTable, register
+    # Prints Table if new value is added (Server Side)
     if name not in HashTable:
         HashTable[name] = key
         connection.send(str.encode('Vehicle has been Registered.'))
@@ -64,7 +65,7 @@ def client_registration(connection, address):
             print("{:<8} {:<20}".format(label, num))
         print("______________________________________________")
 
-    # Check password if already in HashTable (we may not need this part)
+    # Check password if already in HashTable
     else:
         if HashTable[name] == key:
             connection.send(str.encode('Successful (key matches).'))
@@ -86,7 +87,7 @@ def client_registration(connection, address):
                 connection.send(str.encode("Server: OK"))
                 #connected = False
         else:
-            connection.send(str.encode('Unsuccessful (key does not match)'))
+            connection.send(str.encode('\nUnsuccessful (key does not match)'))
             print(name, ' Unsuccessful in Connecting.')
 
     connection.close()
