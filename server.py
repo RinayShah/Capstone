@@ -4,15 +4,10 @@ import hashlib
 from Crypto.PublicKey import RSA
 from Crypto import Random
 from Crypto.Cipher import PKCS1_OAEP
-import ast
+import secrets
 
 from sqlalchemy import false
 
-#Generate private and public keys
-random_generator = Random.new().read
-private_key = RSA.generate(1024, random_generator)
-public_key = private_key.publickey()
-encrypt_str = "encrypted_message="
 
 # Create Socket
 socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
@@ -35,62 +30,56 @@ print("socket binded to %s" % port)
 print("socket is waiting for connection")
 socket.listen(5)
 
-# Hash Table for Clients (i.e., vehicles)
+# Hash Table for Vehicle Parameters
 HashTable = {}
 
 def client_registration(connection, address):
 
-    connection.send(str.encode('Registration Name: '))
-    name = connection.recv(2048)
-    name = name.decode()
+    # Generate Secret Key Ks
+    Ks = str(secrets.token_bytes(8))[2:-1]
 
-    # Key for registration (password) -> to be updated based on security protocol
-    connection.send(str.encode('Registration Key: '))
-    key = connection.recv(2048)
-    key = key.decode()
+    connection.send(str.encode('Username: '))
+    Huid = connection.recv(2048)
+    Huid = Huid.decode()
 
-    # key hash
-    key = hashlib.sha256(str.encode(key)).hexdigest()
+    # Receive Password
+    connection.send(str.encode('Password: '))
+    Hpw = connection.recv(2048)
+    Hpw = Hpw.decode()
 
-    # If not in HashTable, register
-    # Prints Table if new value is added (Server Side)
-    if name not in HashTable:
-        HashTable[name] = key
+    # Calculate Parameter A1
+    Huid_Ks = Huid + " " + Ks
+    a1 = hashlib.sha256(str.encode(Huid_Ks)).hexdigest()
+
+    # Calculate Parameter B1
+    Huid_Hpw = Huid + " " + Hpw
+    temp = hashlib.sha256(str.encode(Huid_Hpw)).hexdigest()
+
+   # b1 
+    a = int(a1, base=16)
+    b = int(temp, base=16)
+    b1 = hex(a ^ b)
+
+
+    # Store parameters a1 and b1
+    if a1 not in HashTable:
+        HashTable[a1] = b1
+        
         connection.send(str.encode('Vehicle has been Registered.'))
-        print(name, ' has been Registered.')
-        print("{:<8} {:<20}".format('Name', 'Key'))
+        print(Huid, ' has been Registered.')
+        print("{:<8} {:<20}".format('\nA1', 'B1\n'))
 
         for k, v in HashTable.items():
             label, num = k, v
-            print("{:<8} {:<20}".format(label, num))
+            print("{:<8} || {:<20}\n".format(label, num))
         print("______________________________________________")
 
-    # Check password if already in HashTable
-    else:
-        if HashTable[name] == key:
-            connection.send(str.encode('Successful (key matches).'))
-            #connection.send(name, ' Successful in Connecting.')
-            message = connection.recv(2048)
-            message = message.decode()
-            print(message)
-
-            if message == "Client: OK":
-                connection.send(public_key.exportKey())
-                print ("Public key sent to client.")
-            connected = True
-            while connected:
-                connection.send(str.encode('Enter Message: '))
-                encrypted_text = connection.recv(2048)
-                decryptor = PKCS1_OAEP.new(private_key)
-                decrypted = decryptor.decrypt(ast.literal_eval(str(encrypted_text)))
-                print ("Decrypted message = " + str(decrypted.decode()))
-                connection.send(str.encode("Server: OK"))
-                #connected = False
-        else:
-            connection.send(str.encode('\nUnsuccessful (key does not match)'))
-            print(name, ' Unsuccessful in Connecting.')
-
-    connection.close()
+        # Send username and password to client for future use. ENCODE BEFORE SENDING for security
+        connection.send(str.encode(a1))
+        print("Username Sent")
+        temp = connection.recv(2048)
+        connection.send(str.encode(HashTable[a1]))
+        print("Password Sent")
 
 def start():
     # While loop (main loop)

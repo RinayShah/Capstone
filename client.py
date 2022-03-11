@@ -1,6 +1,11 @@
+from cProfile import run
 import socket
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
+import secrets
+import hashlib
+
+# VEHICLE
 
 if __name__ == "__main__":
     # Create Socket
@@ -12,57 +17,36 @@ if __name__ == "__main__":
     # connect to the server on local computer
     socket.connect(('127.0.0.1', port))
 
+    # Random Nonce
+    Ru = str(secrets.token_bytes(8))[2:-1]
+
     # User input for potential Vehicle Name (Registration)
     response = socket.recv(2048)
-    name = input(response.decode())
-    socket.send(str.encode(name))
+    uID = input(response.decode())
+    # Hash Username and Random Nonce and send to server as HUID
+    uID_Ru = uID + " " + Ru
+    Huid = hashlib.sha256(str.encode(uID_Ru)).hexdigest()
+    socket.send(str.encode(Huid))
 
-    # User input for Key -> To be modified so that it asks for key
-    # only if already registered, otherwise system assigns key
+    # User input for Password
     response = socket.recv(2048)
-    key = input(response.decode())
-    socket.send(str.encode(key))
+    pW = input(response.decode())
+    # Hash Password and Random Nonce and send to server as HPW
+    pW_Ru = pW + " " + Ru
+    Hpw = hashlib.sha256(str.encode(pW_Ru)).hexdigest()
+    socket.send(str.encode(Hpw))
 
     # Receive status from Server
     response = (socket.recv(2048))
     response = response.decode()
-    print(response)
 
-    # send message
+    # Receive hashed username and password to vehicle/client for future use of vehicle
     if response == "Vehicle has been Registered.":
+        # Receive Password and Username for future use
+        print(response)
+        username = socket.recv(2048)
+        print('Username: ', username.decode())
+        socket.send(str.encode("temp"))
+        password = socket.recv(2048)
+        print('Password: ', password.decode())
         socket.close()
-
-    # If key 
-    elif response == 'Unsuccessful (key does not match)': 
-        print("Key and Vehicle Name do not match Registered Credentials\n")
-        socket.close()
-        exit()
-
-    else:
-        message = "Client: OK"
-        socket.send(str.encode(message))
-
-        publickey = (socket.recv(2048))
-        #response = response.decode()
-        print(publickey)
-
-        while True:
-        #Convert string to key
-            key = RSA.import_key(publickey)
-            encryptor = PKCS1_OAEP.new(key)
-
-            response = socket.recv(2048)
-            encrypte_message = input(response.decode())
-            encrypte_message = str.encode(encrypte_message)
-            encrypted = encryptor.encrypt(encrypte_message)
-            socket.send(encrypted)
-            print("message sent")
-
-            #Server's response
-            server_response = (socket.recv(2048))
-            server_response = server_response.decode()
-            if server_response == "Server: OK":
-                print ("Server decrypted message successfully")
-
-# Close Connection
-#socket.close()
