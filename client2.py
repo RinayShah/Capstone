@@ -45,22 +45,16 @@ if __name__ == "__main__":
     if response == "Vehicle has been Registered.":
         # Receive Password and Username for future use
         username = socket.recv(2048)
-        print(isinstance(username, bytes))
         print('Username: ', username.decode())
         socket.send(str.encode("temp"))
         password = socket.recv(2048)
         print('Password: ', password.decode())
         socket.close()
 
-    # If key 
-    elif response == 'Unsuccessful (key does not match)': 
-        print("Key and Vehicle Name do not match Registered Credentials\n")
-        socket.close()
-        exit()
 
-    else:
-        # DO SOMETHING IF KEY MATCHES AND REGISTRATION IS COMPLETE
-        print("temp")
+
+
+
 
 # Close Connection
 # socket.close()

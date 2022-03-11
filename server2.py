@@ -61,40 +61,30 @@ def client_registration(connection, address):
     b1 = hex(a ^ b)
 
 
-    # If not in HashTable, register
-    # Prints Table if new value is added (Server Side)
-    if Huid not in HashTable:
-        HashTable[Huid] = Hpw
+    # Store parameters a1 and b1
+    if a1 not in HashTable:
+        HashTable[a1] = b1
         
         connection.send(str.encode('Vehicle has been Registered.'))
         print(Huid, ' has been Registered.')
-        print("{:<8} {:<20}".format('Name', 'Key'))
+        print("{:<8} {:<20}".format('\nA1', 'B1\n'))
 
         for k, v in HashTable.items():
             label, num = k, v
-            print("{:<8} {:<20}".format(label, num))
+            print("{:<8} || {:<20}\n".format(label, num))
         print("______________________________________________")
 
         # Send username and password to client for future use. ENCODE BEFORE SENDING for security
-        connection.send(str.encode(Huid))
+        connection.send(str.encode(a1))
         print("Username Sent")
         temp = connection.recv(2048)
-        connection.send(str.encode(HashTable[Huid]))
+        connection.send(str.encode(HashTable[a1]))
         print("Password Sent")
 
-    # Check password if already in HashTable
-    else:
-        if HashTable[Huid] == Hpw:
-            connection.send(str.encode('Successful (key matches).'))
-            #connection.send(name, ' Successful in Connecting.')
-            message = connection.recv(2048)
-            message = message.decode()
-            print(message)
+     
 
-            
-        else:
-            connection.send(str.encode('\nUnsuccessful (key does not match)'))
-            print(Huid, ' Unsuccessful in Connecting.')
+
+
 
     connection.close()
 
