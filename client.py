@@ -49,4 +49,3 @@ if __name__ == "__main__":
         socket.send(str.encode("temp"))
         password = socket.recv(2048)
         print('Password: ', password.decode())
-        socket.close()
