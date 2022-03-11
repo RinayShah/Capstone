@@ -55,10 +55,10 @@ def client_registration(connection, address):
     Huid_Hpw = Huid + " " + Hpw
     temp = hashlib.sha256(str.encode(Huid_Hpw)).hexdigest()
 
-   # b1 = #THIS IS WHERE I LEFT OFF
+   # b1 
     a = int(a1, base=16)
     b = int(temp, base=16)
-    b1 = hex(a ^ temp)
+    b1 = hex(a ^ b)
 
 
     # If not in HashTable, register
