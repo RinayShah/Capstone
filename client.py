@@ -46,6 +46,5 @@ if __name__ == "__main__":
         print(response)
         username = socket.recv(2048)
         print('Username: ', username.decode())
-        socket.send(str.encode("temp"))
         password = socket.recv(2048)
         print('Password: ', password.decode())
