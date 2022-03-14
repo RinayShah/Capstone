@@ -14,9 +14,9 @@ def authentication(socket,Huid,Hpw,b1):
     HUID_HPW = Huid + " " + Hpw
     Hash_HUID_HPW = hashlib.sha256(str.encode(HUID_HPW)).hexdigest()
    
-    b1 =  int(b1, base=16)
-    Hash_HUID_HPW = int(Hash_HUID_HPW, base=16)
-    A1_Auth = b1 ^ Hash_HUID_HPW 
+    #b1 =  int(b1, base=16)
+    #Hash_HUID_HPW = int(Hash_HUID_HPW, base=16)
+    A1_Auth = bytes(a ^ b for (a, b) in zip(b1, Hash_HUID_HPW))  
 
     # Convert to string to concatenate
     A1_Auth_str = str(A1_Auth)
@@ -29,6 +29,7 @@ def authentication(socket,Huid,Hpw,b1):
 
     Msg1 = hashlib.sha256(str.encode(A1_Tu_HPW_Nu)).hexdigest()
     Y1 = b1_str + " " + Hpw_str
+    Y1 = hashlib.sha256(str.encode(Y1)).hexdigest()
     print(f'Y1 value: {Y1}')
 
     Y1_b = bytes(Y1, 'utf-8')
