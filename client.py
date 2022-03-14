@@ -4,7 +4,7 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 import secrets
 import hashlib
-import datetime;
+import datetime
 
 # VEHICLE
 
@@ -29,6 +29,7 @@ def authentication(socket,Huid,Hpw,b1):
 
     Msg1 = hashlib.sha256(str.encode(A1_Tu_HPW_Nu)).hexdigest()
     Y1 = b1_str + " " + Hpw_str
+    print(f'Y1 value: {Y1}')
 
     Y1_b = bytes(Y1, 'utf-8')
     Nu_b = bytes(Nu, 'utf-8')
@@ -37,12 +38,27 @@ def authentication(socket,Huid,Hpw,b1):
     # Send Parameters to Trusted Authority section of server 
     socket.send(str.encode(Msg1))
     print("\nMsg1 send to Trusted Authority")
-    temp = socket.recv(2048)
+    socket.recv(2048)
     socket.send(X1)
     print("X1 send to Trusted Authority")
-    temp = socket.recv(2048)
+    socket.recv(2048)
     socket.send(str.encode(Tu))
     print("Tu send to Trusted Authority")
+
+
+    Msg2 = socket.recv(2048)
+    print('\nMsg2: ', Msg2.decode())
+    socket.send(str.encode(" "))
+
+    X2 = socket.recv(2048)
+    print('X2: ', X2)
+    socket.send(str.encode(" "))
+
+    Tc = socket.recv(2048)
+    print('Tc: ', Tc.decode())
+    
+    HCID = socket.recv(2048)
+    print('HCID: ', HCID.decode())
    
    
     #Push Msg1, X1, Tu and SID

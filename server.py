@@ -5,7 +5,7 @@ from Crypto.PublicKey import RSA
 from Crypto import Random
 from Crypto.Cipher import PKCS1_OAEP
 import secrets
-
+import datetime
 from sqlalchemy import false
 
 
@@ -84,9 +84,9 @@ def client_registration(connection, address):
 
 
         # Call Authentication Method
-        authenticationTA(connection,b1,Ks,Huid,Hpw)
+        authenticationTA(connection,a1,b1,Ks,Huid,Hpw)
 
-def authenticationTA(connection, B1_Auth, Ks, Huid, Hpw):
+def authenticationTA(connection,A1, b1, Ks, Huid, Hpw):
     # Second Block
 
     # Receive parameters from Vehicle
@@ -100,6 +100,49 @@ def authenticationTA(connection, B1_Auth, Ks, Huid, Hpw):
 
     Tu = connection.recv(2048)
     print('Tu: ', Tu.decode())
+
+    b1_b = bytes(b1, 'utf-8')
+    Hpw_b = bytes(Hpw, 'utf-8')
+    B1Auth_Hpw = bytes(a ^ b for (a, b) in zip(b1_b, Hpw_b))
+    print(f'b1Auth_hpw: {B1Auth_Hpw}')
+    Y1_Star = hashlib.sha256(B1Auth_Hpw).hexdigest()
+    print(f'Y1_Star value: {Y1_Star}')
+    Y1_Star_b = bytes(Y1_Star, 'utf-8')
+    Nu_Star = bytes(a ^ b for (a, b) in zip(X1, Y1_Star_b)) 
+    print(f'Nu_star value: {Nu_Star}')
+    Msg1_recalc = A1 + " " + str(Tu) + " " + Hpw + " " + str(Nu_Star)
+    print(f'msg1_recalc: {Msg1_recalc}')
+
+    if Msg1_recalc == Msg1:
+        print('Vehicle index Msg1 verification succeeded')
+    else:
+        print('Vehicle Msg1 verification failed')
+    Msg1 = hashlib.sha256(str.encode(Msg1_recalc)).hexdigest()
+    CID = (0).to_bytes(length=8, byteorder='big') #we may not need this if it is being passed
+    SID = (0).to_bytes(length=8, byteorder='big') #we may not need this if it is being passed
+    Huid_CID_SID = Huid + " " + str(CID) + " " + str(SID)
+    HCID = hashlib.sha256(str.encode(Huid_CID_SID)).hexdigest()
+    Tc = str(datetime.datetime.now())  # Generate time stamp
+    HCID_Ks_Tc_Nu = HCID + " " + Ks + " " + Tc + " " + str(Nu_Star)
+    Msg2 = hashlib.sha256(str.encode(HCID_Ks_Tc_Nu)).hexdigest()
+    print(f'Msg2 {Msg2}')
+    ks_hash = (hashlib.sha256(str.encode(Ks)).hexdigest())
+    ks_hash_b = bytes(ks_hash, 'utf-8')
+    X2 = bytes(a ^ b for (a, b) in zip(Nu_Star, ks_hash_b))
+    print(f'X2 {X2}')
+
+    connection.send(str.encode(Msg2))
+    print("\nMsg2 send to Trusted Authority")
+    connection.recv(2048)
+    connection.send(X2)
+    print("X2 send to Trusted Authority")
+    connection.recv(2048)
+    connection.send(str.encode(Tc))
+    print("TC send to Trusted Authority")
+    connection.send(str.encode(HCID))
+    print("HCID send to Trusted Authority")
+
+    #Push Msg2, X2, Tc and HCID to Vehicle Server
 
 def start():
     # While loop (main loop)
