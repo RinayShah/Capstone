@@ -8,7 +8,7 @@ import datetime;
 
 # VEHICLE
 
-def authentication(Huid,Hpw,b1):
+def authentication(socket,Huid,Hpw,b1):
  
     # First Block following formula in figure 3
     HUID_HPW = Huid + " " + Hpw
@@ -34,6 +34,17 @@ def authentication(Huid,Hpw,b1):
     Nu_b = bytes(Nu, 'utf-8')
     X1 = bytes(a ^ b for (a, b) in zip(Nu_b, Y1_b))
 
+    # Send Parameters to Trusted Authority section of server 
+    socket.send(str.encode(Msg1))
+    print("\nMsg1 send to Trusted Authority")
+    temp = socket.recv(2048)
+    socket.send(X1)
+    print("X1 send to Trusted Authority")
+    temp = socket.recv(2048)
+    socket.send(str.encode(Tu))
+    print("Tu send to Trusted Authority")
+   
+   
     #Push Msg1, X1, Tu and SID
 
 if __name__ == "__main__":
@@ -80,5 +91,5 @@ if __name__ == "__main__":
         b1 = socket.recv(2048)
         print('B1: ', b1.decode())
 
-        authentication(Huid,Hpw,b1)
+        authentication(socket,Huid,Hpw,b1)
 
