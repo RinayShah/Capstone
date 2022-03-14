@@ -67,7 +67,7 @@ def client_registration(connection, address):
         
         connection.send(str.encode('Vehicle has been Registered.'))
         print(Huid, ' has been Registered.')
-        print("{:<8} {:<20}".format('\nA1', 'B1\n'))
+        print("{:<8} || {:<20}".format('\nA1', 'B1\n'))
 
         for k, v in HashTable.items():
             label, num = k, v
@@ -76,10 +76,19 @@ def client_registration(connection, address):
 
         # Send username and password to client for future use. ENCODE BEFORE SENDING for security
         connection.send(str.encode(a1))
-        print("Username Sent")
+        print("A1 Sent")
         temp = connection.recv(2048)
         connection.send(str.encode(HashTable[a1]))
-        print("Password Sent")
+        print("B1 Sent")
+
+        # Send 
+
+        # Call Authentication MEthod
+       # authentication(b1,Ks,Huid,Hpw)
+
+#def authentication(B1_Auth, Ks, Huid, Hpw):
+
+    # First Block
 
 def start():
     # While loop (main loop)
