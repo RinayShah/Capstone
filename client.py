@@ -10,15 +10,15 @@ import datetime;
 
 def authentication(Huid,Hpw,b1):
  
-    # First Block
+    # First Block following formula in figure 3
     HUID_HPW = Huid + " " + Hpw
     Hash_HUID_HPW = hashlib.sha256(str.encode(HUID_HPW)).hexdigest()
    
     b1 =  int(b1, base=16)
     Hash_HUID_HPW = int(Hash_HUID_HPW, base=16)
-    
-    A1_Auth = b1 ^ Hash_HUID_HPW # I named A1 and B1 as A1_Auth and B1_Auth - we can change it
+    A1_Auth = b1 ^ Hash_HUID_HPW 
 
+    # Convert to string to concatenate
     A1_Auth_str = str(A1_Auth)
     b1_str = str(b1)
     Hpw_str = str(Hpw)
@@ -30,18 +30,10 @@ def authentication(Huid,Hpw,b1):
     Msg1 = hashlib.sha256(str.encode(A1_Tu_HPW_Nu)).hexdigest()
     Y1 = b1_str + " " + Hpw_str
 
-    print(Tu)
-    print(Nu)
+    Y1_b = bytes(Y1, 'utf-8')
+    Nu_b = bytes(Nu, 'utf-8')
+    X1 = bytes(a ^ b for (a, b) in zip(Nu_b, Y1_b))
 
-    print("\n\n")
-    
-    Nu_int = int(Nu, base=16)
-    Y1_int = int(Y1, base=16)
-    X1 = Nu_int ^ Y1_int
-
-    print("msg: ", Msg1)
-    print("Y1: ", Y1)
-    print("X1: ", X1)
     #Push Msg1, X1, Tu and SID
 
 if __name__ == "__main__":
