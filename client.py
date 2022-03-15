@@ -11,48 +11,37 @@ def hash(input_bytes):
     sha3_256 = hashlib.sha3_256(input_bytes)
     return sha3_256.digest()
 
-def xor_bytes_objects(one, two):
+def bytes_xor(one, two):
     return bytes(a ^ b for (a, b) in zip(one, two))
 
 def authentication(socket,Huid,Hpw,b1):
  
     # First Block following formula in figure 3
-    HUID_HPW = Huid + " " + Hpw
-    Hash_HUID_HPW = hashlib.sha256(str.encode(HUID_HPW)).hexdigest()
+    Hash_HUID_HPW = hash(Huid + Hpw)
    
-    b1 =  int(b1, base=16)
-    Hash_HUID_HPW = int(Hash_HUID_HPW, base=16)
-    A1_Auth = b1 ^ Hash_HUID_HPW 
-
-    # Convert to string to concatenate
-    A1_Auth_str = str(A1_Auth)
-    b1_str = str(b1)
-    Hpw_str = str(Hpw)
+    A1_Auth = bytes_xor(b1, Hash_HUID_HPW)
 
     Tu = str(datetime.datetime.now()) #Generate time stamp
-    Nu = str(secrets.token_bytes(8))[2:-1] #Generate Random Nonce
-    A1_Tu_HPW_Nu = A1_Auth_str + " " + Tu + " " + Hpw_str + " " + Nu
+    Tu = bytes(Tu, 'utf-8')
+    Nu = (secrets.token_bytes(8))[2:-1] #Generate Random Nonce
 
-    Msg1 = hashlib.sha256(str.encode(A1_Tu_HPW_Nu)).hexdigest()
+    Msg1 = hash(A1_Auth + Tu + Hpw + Nu)
     Y1 = hash(b1 + Hpw)
-    print(f'Y1 bytes value: {Y1}')
-
-    Nu_b = bytes(Nu, 'utf-8')
-    X1 = bytes(a ^ b for (a, b) in zip(Nu_b, Y1))
+    X1 = bytes_xor(Nu, Y1)
 
     # Send Parameters to Trusted Authority section of server 
-    socket.send(str.encode(Msg1))
+    socket.send(Msg1)
     print("\nMsg1 send to Trusted Authority")
     socket.recv(2048)
     socket.send(X1)
     print("X1 send to Trusted Authority")
     socket.recv(2048)
-    socket.send(str.encode(Tu))
+    socket.send(Tu)
     print("Tu send to Trusted Authority")
 
 
     Msg2 = socket.recv(2048)
-    print('\nMsg2: ', Msg2.decode())
+    print('\nMsg2: ', Msg2)
     socket.send(str.encode(" "))
 
     X2 = socket.recv(2048)
@@ -60,10 +49,10 @@ def authentication(socket,Huid,Hpw,b1):
     socket.send(str.encode(" "))
 
     Tc = socket.recv(2048)
-    print('Tc: ', Tc.decode())
+    print('Tc: ', Tc)
     
     HCID = socket.recv(2048)
-    print('HCID: ', HCID.decode())
+    print('HCID: ', HCID)
    
    
     #Push Msg1, X1, Tu and SID
@@ -84,6 +73,7 @@ if __name__ == "__main__":
     # User input for potential Vehicle Name (Registration)
     response = socket.recv(2048)
     uID = input(response)
+    uID = bytes(uID, 'utf-8')
     # Hash Username and Random Nonce and send to server as HUID
     Huid = hash(uID + Ru)
     socket.send(Huid)
@@ -91,6 +81,7 @@ if __name__ == "__main__":
     # User input for Password
     response = socket.recv(2048)
     pW = input(response)
+    pW = bytes(pW, 'utf-8')
     # Hash Password and Random Nonce and send to server as HPW
     Hpw = hash(pW + Ru)
     socket.send(Hpw)
@@ -106,9 +97,9 @@ if __name__ == "__main__":
         print("\n")
         print(response)
         a1 = socket.recv(2048)
-        print('A1: ', a1.decode())
+        print('A1: ', a1)
         socket.send(str.encode(" "))
         b1 = socket.recv(2048)
-        print('B1: ', b1.decode())
+        print('B1: ', b1)
 
         authentication(socket,Huid,Hpw,b1)
