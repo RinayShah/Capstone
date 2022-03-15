@@ -6,6 +6,52 @@ import secrets
 import hashlib
 from time import sleep, time_ns
 from Cryptodome import Random, Util
+from Cryptodome.Cipher import AES
+
+def send_message(connection, message):
+# Protocol is the message's byte length (padded to 5 bytes) followed by the message contents
+    byte_length = len(message).to_bytes(length=5, byteorder='big')
+    connection.sendall(byte_length + message)
+
+def receive_message(connection):
+    # Receive 5 bytes to get message byte length
+    data_received = connection.recv(5, socket.MSG_WAITALL)
+    if not data_received:
+        return -1
+    byte_length = int.from_bytes(bytes=data_received, byteorder='big')
+    # Receive byte_length bytes to get message
+    data_received = connection.recv(byte_length, socket.MSG_WAITALL)
+    if not data_received:
+        return -1
+    return data_received
+
+def encrypt(plain_bytes, secret_key):
+# mac_len is tag length (16 bytes)
+    aes_object = AES.new(key=secret_key, mode=AES.MODE_GCM, mac_len=16)
+    cipher_bytes, tag = aes_object.encrypt_and_digest(plain_bytes)
+    # 16 bytes for tag followed by 16 bytes for nonce followed by the cipher bytes
+    return tag + aes_object.nonce + cipher_bytes
+
+# Decrypts the given dictionary and secret key using AES-GCM.
+def decrypt(encrypted_bytes, secret_key):
+    tag = encrypted_bytes[:16]
+    nonce = encrypted_bytes[16:32]
+    cipher_bytes = encrypted_bytes[32:]
+    aes_object = AES.new(key=secret_key, mode=AES.MODE_GCM, nonce=nonce)
+    decrypted = aes_object.decrypt_and_verify(cipher_bytes, tag)
+    return decrypted
+
+def encrypt_and_send_message(connection, message, secret_key):
+    message = encrypt(message, secret_key)
+    send_message(connection, message)
+
+# Call receive_message(connection) and decrypt the message using secret_key.
+def receive_message_and_decrypt(connection, secret_key):
+    data_received = receive_message(connection)
+    if data_received == -1:
+        return -1
+
+    return decrypt(data_received, secret_key)
 
 # VEHICLE
 def hash(input_bytes):
@@ -78,6 +124,15 @@ def authentication(socket,Huid,Hpw,b1):
     Sk_star = hash(HCID + Ns_star + Nu)
     print(f'Generated Sk* {Sk_star.hex()}')
     session_key = Sk_star
+    send_server_message(socket,session_key)
+
+def send_server_message(socket, session_key):
+    while True:
+        message = input("Enter a message to send the server: ")
+        encrypt_and_send_message(socket, message.encode(), session_key)
+        received = receive_message_and_decrypt(socket, session_key)
+        print(f"Message from server {received}")
+
 
     #Push Msg1, X1, Tu and SID
 
