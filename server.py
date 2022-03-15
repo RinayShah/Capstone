@@ -5,7 +5,7 @@ from Crypto.PublicKey import RSA
 from Crypto import Random
 from Crypto.Cipher import PKCS1_OAEP
 import secrets
-import datetime
+from time import sleep, time_ns
 from sqlalchemy import false
 
 
@@ -39,6 +39,9 @@ def hash(input_bytes):
 
 def bytes_xor(one, two):
     return bytes(a ^ b for (a, b) in zip(one, two))
+
+def generate_random_n_bytes(n):
+    return Random.new().read(n)
 
 def client_registration(connection, address):
 
@@ -109,26 +112,20 @@ def authenticationTA(connection,A1, b1, Ks, Huid, Hpw):
 
     #b1_b = bytes(b1, 'utf-8')
     #Hpw_b = bytes(Hpw, 'utf-8')
-    B1Auth_Hpw = bytes_xor(b1, Hpw)
-    print(f'b1Auth_hpw: {B1Auth_Hpw}')
-    Y1_Star = hash(B1Auth_Hpw)
-    print(f'Y1_Star value: {Y1_Star}')
-    #Y1_Star_b = bytes(Y1_Star, 'utf-8')
-    Nu_Star = bytes_xor(X1, Y1_Star)
-    print(f'Nu_star value: {Nu_Star}')
+    Y1_star = hash(b1 + Hpw)
+    Nu_Star = bytes_xor(X1, Y1_star)
     Msg1_recalc = hash(A1 + Tu +  Hpw + Nu_Star)
-    print(f'msg1_recalc: {Msg1_recalc}')
 
     if Msg1_recalc == Msg1:
         print('Vehicle index Msg1 verification succeeded')
     else:
         print('Vehicle Msg1 verification failed')
-    Msg1 = hashlib.sha256(str.encode(Msg1_recalc)).hexdigest()
+
     CID = (0).to_bytes(length=8, byteorder='big') #we may not need this if it is being passed
     SID = (0).to_bytes(length=8, byteorder='big') #we may not need this if it is being passed
     HCID = hash(Huid + CID + SID)
     #HCID = hashlib.sha256(str.encode(Huid_CID_SID)).hexdigest()
-    Tc = (datetime.datetime.now())  # Generate time stamp
+    Tc = time_ns().to_bytes(length=8, byteorder='big')  # Generate time stamp
     Msg2 = hash(HCID + Ks + Tc + Nu_Star)
     #Msg2 = hashlib.sha256(str.encode(HCID_Ks_Tc_Nu)).hexdigest()
     print(f'Msg2 {Msg2}')
@@ -136,16 +133,35 @@ def authenticationTA(connection,A1, b1, Ks, Huid, Hpw):
     X2 = bytes_xor(Nu_Star, ks_hash)
     print(f'X2 {X2}')
 
-    connection.send(str.encode(Msg2))
+    connection.send(Msg2)
     print("\nMsg2 send to Trusted Authority")
     connection.recv(2048)
     connection.send(X2)
     print("X2 send to Trusted Authority")
     connection.recv(2048)
-    connection.send(str.encode(Tc))
+    connection.send(Tc)
     print("TC send to Trusted Authority")
-    connection.send(str.encode(HCID))
+    connection.send(HCID)
     print("HCID send to Trusted Authority")
+
+
+    Ns = generate_random_n_bytes(8)
+    print(f'[Vehicle Generated Ns {Ns.hex()}')
+    Sk = hash(HCID + Ns + Nu_Star)
+    print(f'[Vehicle Generated Sk {Sk.hex()}')
+    Ts = time_ns().to_bytes(length=8, byteorder='big')
+    X3 = hash(Nu_Star + Ns + Ts + Ks)
+    Msg3 = bytes_xor(Ns, Nu_Star)
+    w = bytes_xor(Ns, Hpw)
+    X4 = hash(Nu_Star + Ns + Hpw)
+
+    connection.send(w)
+    print("\nw sent to Trusted Authority")
+    connection.recv(2048)
+    connection.send(X4)
+    print("X4 sent to Trusted Authority")
+    connection.recv(2048)
+    session_key = Sk
 
     #Push Msg2, X2, Tc and HCID to Vehicle Server
 

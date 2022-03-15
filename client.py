@@ -4,7 +4,8 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 import secrets
 import hashlib
-import datetime
+from time import sleep, time_ns
+from Cryptodome import Random, Util
 
 # VEHICLE
 def hash(input_bytes):
@@ -14,16 +15,16 @@ def hash(input_bytes):
 def bytes_xor(one, two):
     return bytes(a ^ b for (a, b) in zip(one, two))
 
+def generate_random_n_bytes(n):
+    return Random.new().read(n)
+
 def authentication(socket,Huid,Hpw,b1):
  
     # First Block following formula in figure 3
-    Hash_HUID_HPW = hash(Huid + Hpw)
-   
-    A1_Auth = bytes_xor(b1, Hash_HUID_HPW)
+    A1_Auth = bytes_xor(b1,hash(Huid + Hpw))
 
-    Tu = str(datetime.datetime.now()) #Generate time stamp
-    Tu = bytes(Tu, 'utf-8')
-    Nu = (secrets.token_bytes(8))[2:-1] #Generate Random Nonce
+    Tu = time_ns().to_bytes(length=8, byteorder='big')
+    Nu = generate_random_n_bytes(8) #Generate Random Nonce
 
     Msg1 = hash(A1_Auth + Tu + Hpw + Nu)
     Y1 = hash(b1 + Hpw)
@@ -31,6 +32,7 @@ def authentication(socket,Huid,Hpw,b1):
 
     # Send Parameters to Trusted Authority section of server 
     socket.send(Msg1)
+    print(f'Msg1 {Msg1}')
     print("\nMsg1 send to Trusted Authority")
     socket.recv(2048)
     socket.send(X1)
@@ -41,20 +43,42 @@ def authentication(socket,Huid,Hpw,b1):
 
 
     Msg2 = socket.recv(2048)
-    print('\nMsg2: ', Msg2)
+    print('\n Received Msg2: ', Msg2)
     socket.send(str.encode(" "))
 
     X2 = socket.recv(2048)
-    print('X2: ', X2)
+    print('Received X2: ', X2)
     socket.send(str.encode(" "))
 
     Tc = socket.recv(2048)
-    print('Tc: ', Tc)
+    print('Received Tc: ', Tc)
     
     HCID = socket.recv(2048)
-    print('HCID: ', HCID)
+    print('Received HCID: ', HCID)
    
-   
+    w = socket.recv(2048)
+    print('\n Received w: ', w)
+    socket.send(str.encode(" "))
+
+    X4 = socket.recv(2048)
+    print('Received X4: ', X4)
+    socket.send(str.encode(" "))
+
+    Ns_star = bytes_xor(w, Hpw)
+    print(f'Generated Ns* {Ns_star.hex()}')
+    X4_recalc = hash(Nu + Ns_star + Hpw)
+    if X4_recalc == X4:
+        print('X4 verification succeeded')
+    else:
+        print('X4 verification failed')
+        
+    CID = (0).to_bytes(length=8, byteorder='big')
+    SID = (0).to_bytes(length=8, byteorder='big')
+    HCID = hash(Huid + CID + SID)
+    Sk_star = hash(HCID + Ns_star + Nu)
+    print(f'Generated Sk* {Sk_star.hex()}')
+    session_key = Sk_star
+
     #Push Msg1, X1, Tu and SID
 
 if __name__ == "__main__":
