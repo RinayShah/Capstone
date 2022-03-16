@@ -5,9 +5,9 @@ from Crypto.PublicKey import RSA
 from Crypto import Random
 from Crypto.Cipher import PKCS1_OAEP
 import secrets
-from time import sleep, time_ns
+from time import time_ns
 from sqlalchemy import false
-from Cryptodome.Cipher import AES
+import ast
 
 # Create Socket
 socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
@@ -33,50 +33,9 @@ socket.listen(5)
 # Hash Table for Vehicle Parameters
 HashTable = {}
 
-def send_message(connection, message):
-# Protocol is the message's byte length (padded to 5 bytes) followed by the message contents
-    byte_length = len(message).to_bytes(length=5, byteorder='big')
-    connection.sendall(byte_length + message)
-
-def receive_message(connection):
-    # Receive 5 bytes to get message byte length
-    data_received = connection.recv(5, socket.MSG_WAITALL)
-    if not data_received:
-        return -1
-    byte_length = int.from_bytes(bytes=data_received, byteorder='big')
-    # Receive byte_length bytes to get message
-    data_received = connection.recv(byte_length, socket.MSG_WAITALL)
-    if not data_received:
-        return -1
-    return data_received
-
-def encrypt(plain_bytes, secret_key):
-# mac_len is tag length (16 bytes)
-    aes_object = AES.new(key=secret_key, mode=AES.MODE_GCM, mac_len=16)
-    cipher_bytes, tag = aes_object.encrypt_and_digest(plain_bytes)
-    # 16 bytes for tag followed by 16 bytes for nonce followed by the cipher bytes
-    return tag + aes_object.nonce + cipher_bytes
-
-# Decrypts the given dictionary and secret key using AES-GCM.
-def decrypt(encrypted_bytes, secret_key):
-    tag = encrypted_bytes[:16]
-    nonce = encrypted_bytes[16:32]
-    cipher_bytes = encrypted_bytes[32:]
-    aes_object = AES.new(key=secret_key, mode=AES.MODE_GCM, nonce=nonce)
-    decrypted = aes_object.decrypt_and_verify(cipher_bytes, tag)
-    return decrypted
-
-def encrypt_and_send_message(connection, message, secret_key):
-    message = encrypt(message, secret_key)
-    send_message(connection, message)
-
-# Call receive_message(connection) and decrypt the message using secret_key.
-def receive_message_and_decrypt(connection, secret_key):
-    data_received = receive_message(connection)
-    if data_received == -1:
-        return -1
-
-    return decrypt(data_received, secret_key)
+random_generator = Random.new().read
+private_key = RSA.generate(1024, random_generator)
+public_key = private_key.publickey()
 
 def hash(input_bytes):
     sha3_256 = hashlib.sha3_256(input_bytes)
@@ -206,16 +165,27 @@ def authenticationTA(connection,A1, b1, Ks, Huid, Hpw):
     connection.send(X4)
     print("X4 sent to Trusted Authority")
     connection.recv(2048)
-    session_key = Sk
-    send_client_message(connection, session_key)
+    #session_key = Sk
+    send_client_message(connection)
 
-    #Push Msg2, X2, Tc and HCID to Vehicle Server
-def send_client_message(connection, session_key):
+
+def send_client_message(connection):
+    message = connection.recv(2048)
+    print(message)
+    message = message.decode()
+    print(message)
+
+    if message == "Client: OK":
+        connection.send(public_key.exportKey())
+        print ("Public key sent to client.")
     while True:
-        message = input("Enter a message to send the client: ")
-        encrypt_and_send_message(connection, message.encode(), session_key)
-        received = receive_message_and_decrypt(connection, session_key)
-        print(f"Message from clinet {received}")
+        connection.send(str.encode('Enter Message: '))
+        encrypted_text = connection.recv(2048)
+        decryptor = PKCS1_OAEP.new(private_key)
+        decrypted = decryptor.decrypt(ast.literal_eval(str(encrypted_text)))
+        print ("Decrypted message = " + str(decrypted.decode()))
+        connection.send(str.encode("Server: OK"))
+                #connected = False
 
 def start():
     # While loop (main loop)
