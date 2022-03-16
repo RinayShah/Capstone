@@ -33,31 +33,19 @@ def authentication(socket,Huid,Hpw,b1):
     # Send Parameters to Trusted Authority section of server 
     socket.send(Msg1)
     print(f'Msg1 {Msg1}')
-    print("\nMsg1 send to Trusted Authority")
     socket.recv(2048)
     socket.send(X1)
-    print("X1 send to Trusted Authority")
+    print(f'X1 {X1}')
     socket.recv(2048)
     socket.send(Tu)
-    print("Tu send to Trusted Authority")
+    print(f'Tu {Tu}')
+    print("\nMsg1, X1, Tu sent to Trusted Authority as per Protocol")
+
+    print("\n_______________________________________________________\n")
 
 
-    Msg2 = socket.recv(2048)
-    print('\n Received Msg2: ', Msg2)
-    socket.send(str.encode(" "))
-
-    X2 = socket.recv(2048)
-    print('Received X2: ', X2)
-    socket.send(str.encode(" "))
-
-    Tc = socket.recv(2048)
-    print('Received Tc: ', Tc)
-    
-    HCID = socket.recv(2048)
-    print('Received HCID: ', HCID)
-   
     w = socket.recv(2048)
-    print('\n Received w: ', w)
+    print('\nReceived w: ', w)
     socket.send(str.encode(" "))
 
     X4 = socket.recv(2048)
@@ -66,17 +54,22 @@ def authentication(socket,Huid,Hpw,b1):
 
     Ns_star = bytes_xor(w, Hpw)
     print(f'Generated Ns* {Ns_star.hex()}')
-    X4_recalc = hash(Nu + Ns_star + Hpw)
-    if X4_recalc == X4:
-        print('X4 verification succeeded')
+    X4_recalculated = hash(Nu + Ns_star + Hpw)
+
+    if X4_recalculated == X4:
+        print('Trusted Authority X4 matches recalculated X4')
     else:
-        print('X4 verification failed')
+        print('Trusted Authority X4 does not match recalculated X4')
         
     CID = (0).to_bytes(length=8, byteorder='big')
     SID = (0).to_bytes(length=8, byteorder='big')
     HCID = hash(Huid + CID + SID)
+
     Sk_star = hash(HCID + Ns_star + Nu)
     print(f'Generated Sk* {Sk_star.hex()}')
+
+    print("\n")
+    
     #session_key = Sk_star
     send_server_message(socket)
 
@@ -147,10 +140,13 @@ if __name__ == "__main__":
         # Receive parameters for authentication (Smart Card imitation)
         print("\n")
         print(response)
+        print ("\nReceived Parameters from Registration Authority as per Protocol")
         a1 = socket.recv(2048)
         print('A1: ', a1)
         socket.send(str.encode(" "))
         b1 = socket.recv(2048)
         print('B1: ', b1)
+
+        print("\n_______________________________________________________\n")
 
         authentication(socket,Huid,Hpw,b1)

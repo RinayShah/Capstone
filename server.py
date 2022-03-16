@@ -85,24 +85,26 @@ def client_registration(connection, address):
         for k, v in HashTable.items():
             label, num = k, v
             print("{:<8} || {:<20}\n".format(str(label), str(num)))
-        print("______________________________________________")
+        print("_______________________________________________________")
 
         # Send username and password to client for future use. ENCODE BEFORE SENDING for security
         connection.send(a1)
-        print("\nA1 Sent")
+        print("\nA1 Sent to Client as per Registration Process")
         temp = connection.recv(2048)
         connection.send(HashTable[a1])
-        print("B1 Sent")
-        print("_______________________________________________")
+        print("B1 Sent to Client as per Registration Process")
+        print("_______________________________________________________")
 
 
         # Call Authentication Method
-        authenticationTA(connection,a1,b1,Ks,Huid,Hpw)
+        authenticationTA_1(connection,a1,b1,Ks,Huid,Hpw)
 
-def authenticationTA(connection,A1, b1, Ks, Huid, Hpw):
+# Trusted Authority portion of protocol when sending to Vehicle Server
+def authenticationTA_1(connection, A1, b1, Ks, Huid, Hpw):
     # Second Block
 
     # Receive parameters from Vehicle
+    print("\nReceived Parameters from Vehicle: ")
     Msg1 = connection.recv(2048)
     print('\nMsg1: ', Msg1)
     connection.send(str.encode(" "))
@@ -114,59 +116,103 @@ def authenticationTA(connection,A1, b1, Ks, Huid, Hpw):
     Tu = connection.recv(2048)
     print('Tu: ', Tu)
 
-    #b1_b = bytes(b1, 'utf-8')
-    #Hpw_b = bytes(Hpw, 'utf-8')
+    print("\n_______________________________________________________\n")
+
     Y1_star = hash(b1 + Hpw)
     Nu_Star = bytes_xor(X1, Y1_star)
     Msg1_recalc = hash(A1 + Tu +  Hpw + Nu_Star)
 
+    # Check to see if message sent from Vehicle matches recalculated
     if Msg1_recalc == Msg1:
-        print('Vehicle index Msg1 verification succeeded')
+        print('\nVehicle Msg1 matches recalcualted Msg1 according to Protocol\n')
     else:
-        print('Vehicle Msg1 verification failed')
+        print('\nVehicle Msg1 does not match Msg1\n')
 
     CID = (0).to_bytes(length=8, byteorder='big') #we may not need this if it is being passed
     SID = (0).to_bytes(length=8, byteorder='big') #we may not need this if it is being passed
     HCID = hash(Huid + CID + SID)
-    #HCID = hashlib.sha256(str.encode(Huid_CID_SID)).hexdigest()
+    
     Tc = time_ns().to_bytes(length=8, byteorder='big')  # Generate time stamp
     Msg2 = hash(HCID + Ks + Tc + Nu_Star)
-    #Msg2 = hashlib.sha256(str.encode(HCID_Ks_Tc_Nu)).hexdigest()
-    print(f'Msg2 {Msg2}')
     ks_hash = hash(Ks)
     X2 = bytes_xor(Nu_Star, ks_hash)
+
+    # Print Parameters being sent to Vehicle Server
+    print(f'Msg2 {Msg2}')
     print(f'X2 {X2}')
-
-    connection.send(Msg2)
-    print("\nMsg2 send to Trusted Authority")
-    connection.recv(2048)
-    connection.send(X2)
-    print("X2 send to Trusted Authority")
-    connection.recv(2048)
-    connection.send(Tc)
-    print("TC send to Trusted Authority")
-    connection.send(HCID)
-    print("HCID send to Trusted Authority")
+    print("Tc: ", Tc)
+    print("HCID: ", HCID)
 
 
-    Ns = generate_random_n_bytes(8)
-    print(f'Vehicle Generated Ns {Ns.hex()}')
-    Sk = hash(HCID + Ns + Nu_Star)
-    print(f'Vehicle Generated Sk {Sk.hex()}')
-    Ts = time_ns().to_bytes(length=8, byteorder='big')
-    X3 = hash(Nu_Star + Ns + Ts + Ks)
-    Msg3 = bytes_xor(Ns, Nu_Star)
-    w = bytes_xor(Ns, Hpw)
-    X4 = hash(Nu_Star + Ns + Hpw)
+    print("\nMsg2, X2, Tc, HCID sent to Vehicle Server as per Protocol")
 
+    print("\n_______________________________________________________\n")
+
+    # Ks is being sent because in protocol Vehicle Server would already have Ks
+    Msg3, X3, Ts = authenticationVehicleServer(Msg2, X2, Tc, HCID, Ks)
+
+    # After Vehicle Server sends parameters back
+    Ns_star = bytes_xor(Msg3, Nu_Star)
+    X3_recalculated = hash(Nu_Star + Ns_star + Ts + Ks)
+
+    # Check to see if X3 sent from Vehicle Server matches recalculated
+    if X3_recalculated == X3:
+        print('\nVehicle Server X3 matches recalcualted X3 according to Protocol\n')
+    else:
+        print('\nVehicle Server X3 does not match recalculated X3\n')
+
+    w = bytes_xor(Ns_star, Hpw)
+    X4 = hash(Nu_Star + Ns_star + Hpw)
+    
+    # Print parameters being sent to Vehicle
+    
+    
     connection.send(w)
-    print("\nw sent to Trusted Authority")
     connection.recv(2048)
     connection.send(X4)
-    print("X4 sent to Trusted Authority")
+    
+    print("w: ", w)
+    print("X4: ", X4)
+    print("w, X4 sent to Vehicle as per Protocol")
     connection.recv(2048)
-    #session_key = Sk
+    
+    print("\n")
+    
+    # session_key = Sk
     send_client_message(connection)
+
+
+# Vehicle Server portion of Protocol
+def authenticationVehicleServer(Msg2, X2, Tc, HCID, Ks): 
+    ks_hash = hash(Ks)
+    Nu_star = bytes_xor(X2, ks_hash)
+    Msg2_recalculated = hash(HCID + Ks + Tc + Nu_star)
+
+    # Check to see if message sent from TA matches recalculated
+    if Msg2_recalculated == Msg2:
+        print('\nTrusted Authority Msg2 matches recalcualted Msg2 according to Protocol\n')
+    else:
+        print('\nTrusted Authority Msg2 does not match reacalculated Msg2\n')
+
+    # Generate a Random Nonce: Ns
+    Ns = generate_random_n_bytes(8)
+    Sk = hash(HCID + Ns + Nu_star)
+    # Generate time stamp in byte form
+    Ts = time_ns().to_bytes(length=8, byteorder='big')
+    X3 = hash(Nu_star + Ns + Ts + Ks)
+    Msg3 = bytes_xor(Ns, Nu_star)
+
+    # Print parameters being sent back to Trusted Authority
+    print("Msg3: ", Msg3)
+    print("X3: ", X3)
+    print("Ts: ", Ts)
+
+    print("\nMsg3, X3, Ts sent to Trusted Authority as per Protocol")
+
+    print("\n_______________________________________________________\n")
+
+    return(Msg3, X3, Ts)
+
 
 
 def send_client_message(connection):
