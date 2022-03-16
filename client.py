@@ -76,7 +76,7 @@ def authentication(socket,Huid,Hpw,b1):
 def send_server_message(socket):
     message = "Client: OK"
     socket.send(str.encode(message))
-    print("message sent")
+    print("Message sent")
     publickey = (socket.recv(2048))
     print(publickey)
 
@@ -90,7 +90,7 @@ def send_server_message(socket):
         encrypte_message = str.encode(encrypte_message)
         encrypted = encryptor.encrypt(encrypte_message)
         socket.send(encrypted)
-        print("message sent")
+        print("Message sent")
 
         #Server's response
         server_response = (socket.recv(2048))

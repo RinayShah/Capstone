@@ -229,6 +229,7 @@ def send_client_message(connection):
         encrypted_text = connection.recv(2048)
         decryptor = PKCS1_OAEP.new(private_key)
         decrypted = decryptor.decrypt(ast.literal_eval(str(encrypted_text)))
+        print ("Encrypted message = " + (str(encrypted_text)))
         print ("Decrypted message = " + str(decrypted.decode()))
         connection.send(str.encode("Server: OK"))
                 #connected = False
