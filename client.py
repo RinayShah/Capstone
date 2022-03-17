@@ -15,7 +15,7 @@ def hash(bytes):
 def bytes_xor(one, two):
     return bytes(a ^ b for (a, b) in zip(one, two))
 
-def generate_random_n_bytes(num_bytes):
+def generateRandomBytes(num_bytes):
     return Random.new().read(num_bytes)
 
 def authentication(socket,Huid,Hpw,b1):
@@ -24,7 +24,7 @@ def authentication(socket,Huid,Hpw,b1):
     A1_Auth = bytes_xor(b1,hash(Huid + Hpw))
 
     Tu = time_ns().to_bytes(length=8, byteorder='big')
-    Nu = generate_random_n_bytes(8) #Generate Random Nonce
+    Nu = generateRandomBytes(8) #Generate Random Nonce
 
     Msg1 = hash(A1_Auth + Tu + Hpw + Nu)
     Y1 = hash(b1 + Hpw)
@@ -107,10 +107,8 @@ if __name__ == "__main__":
 
     # Define port number
     port = 8000
-
     # connect to the server on local computer
     socket.connect(('127.0.0.1', port))
-
     # Random Nonce
     Ru = secrets.token_bytes(8)[2:-1]
 
@@ -129,7 +127,6 @@ if __name__ == "__main__":
     # Hash Password and Random Nonce and send to server as HPW
     Hpw = hash(pW + Ru)
     socket.send(Hpw)
-
 
     # Receive status from Server
     response = (socket.recv(2048))

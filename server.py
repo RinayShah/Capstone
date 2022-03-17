@@ -12,13 +12,10 @@ import ast
 # Create Socket
 socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
 print("Socket successfully created")
-
 # reserve port number
 port = 8000
-
 # Handling multiple connections (possibly)
 numConnections = 0
-
 # Bind socket to port or print error
 try:
     socket.bind(('', port))
@@ -44,7 +41,7 @@ def hash(bytes):
 def bytes_xor(one, two):
     return bytes(a ^ b for (a, b) in zip(one, two))
 
-def generate_random_n_bytes(num_bytes):
+def generateRandomBytes(num_bytes):
     return Random.new().read(num_bytes)
 
 def client_registration(connection, address):
@@ -54,12 +51,10 @@ def client_registration(connection, address):
 
     connection.send(str.encode('Username: '))
     Huid = connection.recv(2048)
-    #Huid = Huid.decode()
 
     # Receive Password
     connection.send(str.encode('Password: '))
     Hpw = connection.recv(2048)
-    #Hpw = Hpw.decode()
 
     # Calculate Parameter A1
     Huid_Ks = Huid + Ks
@@ -68,9 +63,6 @@ def client_registration(connection, address):
     # Calculate Parameter B1
     Huid_Hpw = hash(Huid + Hpw)
 
-   # b1 
-    #a = bytes()
-    #b = int(temp, base=16)
     b1 = bytes_xor(a1, Huid_Hpw)
 
 
@@ -120,10 +112,10 @@ def authenticationTA_1(connection, A1, b1, Ks, Huid, Hpw):
 
     Y1_star = hash(b1 + Hpw)
     Nu_Star = bytes_xor(X1, Y1_star)
-    Msg1_recalc = hash(A1 + Tu +  Hpw + Nu_Star)
+    Msg1_recalculated = hash(A1 + Tu +  Hpw + Nu_Star)
 
     # Check to see if message sent from Vehicle matches recalculated
-    if Msg1_recalc == Msg1:
+    if Msg1_recalculated == Msg1:
         print('\nVehicle Msg1 matches recalcualted Msg1 according to Protocol\n')
     else:
         print('\nVehicle Msg1 does not match Msg1\n')
@@ -195,7 +187,7 @@ def authenticationVehicleServer(Msg2, X2, Tc, HCID, Ks):
         print('\nTrusted Authority Msg2 does not match reacalculated Msg2\n')
 
     # Generate a Random Nonce: Ns
-    Ns = generate_random_n_bytes(8)
+    Ns = generateRandomBytes(8)
     Sk = hash(HCID + Ns + Nu_star)
     # Generate time stamp in byte form
     Ts = time_ns().to_bytes(length=8, byteorder='big')
