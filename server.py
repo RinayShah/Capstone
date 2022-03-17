@@ -8,6 +8,13 @@ import secrets
 from time import time_ns
 from sqlalchemy import false
 import ast
+from Crypto.Cipher import DES
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
+import random
+import string
+
+charList = string.ascii_lowercase + string.digits
 
 # Create Socket
 socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
@@ -37,6 +44,21 @@ random_generator = Random.new().read
 private_key = RSA.generate(1024, random_generator)
 public_key = private_key.publickey()
 
+def append_space_padding(text, blocksize=8):
+    while len(text) % blocksize != 0:
+        text += ' '
+    return text
+
+def des_encrypt(plaintext, key):
+    des = DES.new(key, DES.MODE_ECB)
+    cypher = des.encrypt(str.encode(append_space_padding(plaintext)))
+    return cypher
+
+def des_decrypt(ciphertext, key):
+    des = DES.new(key, DES.MODE_ECB)
+    plain = des.decrypt(ciphertext).decode()
+    return plain
+
 def hash(input_bytes):
     sha3_256 = hashlib.sha3_256(input_bytes)
     return sha3_256.digest()
@@ -46,6 +68,13 @@ def bytes_xor(one, two):
 
 def generate_random_n_bytes(n):
     return Random.new().read(n)
+
+def handle_recv(sock, key):
+    while True:
+        msg = sock.recv(1024)
+        print(f'\nCipher received: {msg}')
+        print(f'Message received: {des_decrypt(msg, key)}')
+        print('Enter a message: ')
 
 def client_registration(connection, address):
 
@@ -138,8 +167,8 @@ def authenticationTA_1(connection, A1, b1, Ks, Huid, Hpw):
     X2 = bytes_xor(Nu_Star, ks_hash)
 
     # Print Parameters being sent to Vehicle Server
-    print(f'Msg2 {Msg2}')
-    print(f'X2 {X2}')
+    print('Msg2', Msg2)
+    print('X2', X2)
     print("Tc: ", Tc)
     print("HCID: ", HCID)
 
@@ -149,7 +178,7 @@ def authenticationTA_1(connection, A1, b1, Ks, Huid, Hpw):
     print("\n_______________________________________________________\n")
 
     # Ks is being sent because in protocol Vehicle Server would already have Ks
-    Msg3, X3, Ts = authenticationVehicleServer(Msg2, X2, Tc, HCID, Ks)
+    Msg3, X3, Ts, Sk = authenticationVehicleServer(Msg2, X2, Tc, HCID, Ks)
 
     # After Vehicle Server sends parameters back
     Ns_star = bytes_xor(Msg3, Nu_Star)
@@ -170,16 +199,16 @@ def authenticationTA_1(connection, A1, b1, Ks, Huid, Hpw):
     connection.send(w)
     connection.recv(2048)
     connection.send(X4)
-    
+    connection.recv(2048)
     print("w: ", w)
     print("X4: ", X4)
     print("w, X4 sent to Vehicle as per Protocol")
-    connection.recv(2048)
-    
     print("\n")
     
-    # session_key = Sk
-    send_client_message(connection)
+    session_key = Sk[:8]
+    thread1 = threading.Thread(target=handle_recv, args=(connection, session_key))
+    thread1.start()
+    send_client_message(connection,session_key)
 
 
 # Vehicle Server portion of Protocol
@@ -211,28 +240,15 @@ def authenticationVehicleServer(Msg2, X2, Tc, HCID, Ks):
 
     print("\n_______________________________________________________\n")
 
-    return(Msg3, X3, Ts)
+    return(Msg3, X3, Ts, Sk)
 
 
 
-def send_client_message(connection):
-    message = connection.recv(2048)
-    print(message)
-    message = message.decode()
-    print(message)
-
-    if message == "Client: OK":
-        connection.send(public_key.exportKey())
-        print ("Public key sent to client.")
+def send_client_message(connection,session_key):
     while True:
-        connection.send(str.encode('Enter Message: '))
-        encrypted_text = connection.recv(2048)
-        decryptor = PKCS1_OAEP.new(private_key)
-        decrypted = decryptor.decrypt(ast.literal_eval(str(encrypted_text)))
-        print ("Encrypted message = " + (str(encrypted_text)))
-        print ("Decrypted message = " + str(decrypted.decode()))
-        connection.send(str.encode("Server: OK"))
-                #connected = False
+        msgToSend = input('Enter a message: ')
+        cipherMsg = des_encrypt(msgToSend, session_key)
+        connection.send(cipherMsg)
 
 def start():
     # While loop (main loop)

@@ -6,6 +6,14 @@ import secrets
 import hashlib
 from time import time_ns
 from Cryptodome import Random
+from Crypto.Cipher import DES
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
+import random
+import string
+import threading
+
+charList = string.ascii_lowercase + string.digits
 
 # VEHICLE
 def hash(input_bytes):
@@ -17,6 +25,34 @@ def bytes_xor(one, two):
 
 def generate_random_n_bytes(n):
     return Random.new().read(n)
+
+def generate_key():
+    result = ''
+    for i in range(8):
+        result = result + random.choice(charList)
+    return result
+
+def append_space_padding(text, blocksize=8):
+    while len(text) % blocksize != 0:
+        text += ' '
+    return text
+
+def des_encrypt(plaintext, key):
+    des = DES.new(key, DES.MODE_ECB)
+    cypher = des.encrypt(str.encode(append_space_padding(plaintext)))
+    return cypher
+
+def des_decrypt(ciphertext, key):
+    des = DES.new(key, DES.MODE_ECB)
+    plain = des.decrypt(ciphertext).decode()
+    return plain
+
+def handle_recv(sock, key):
+    while True:
+        msg = sock.recv(1024)
+        print(f'\nCipher received: {msg}')
+        print(f'Message received: {des_decrypt(msg, key)}')
+        print('Enter a message: ')
 
 def authentication(socket,Huid,Hpw,b1):
  
@@ -70,36 +106,18 @@ def authentication(socket,Huid,Hpw,b1):
 
     print("\n")
     
-    #session_key = Sk_star
-    send_server_message(socket)
+    session_key = Sk_star[:8]
+    thread1 = threading.Thread(target=handle_recv, args=(socket, session_key))
+    thread1.start()
+    send_server_message(socket,session_key)
+    
 
-def send_server_message(socket):
-    message = "Client: OK"
-    socket.send(str.encode(message))
-    print("Message sent")
-    publickey = (socket.recv(2048))
-    print(publickey)
-
+def send_server_message(socket,session_key):
     while True:
-        #Convert string to key
-        key = RSA.import_key(publickey)
-        encryptor = PKCS1_OAEP.new(key)
+        msgToSend = input('Enter a message: ')
+        cipherMsg = des_encrypt(msgToSend, session_key)
+        socket.send(cipherMsg)
 
-        response = socket.recv(2048)
-        encrypte_message = input(response.decode())
-        encrypte_message = str.encode(encrypte_message)
-        encrypted = encryptor.encrypt(encrypte_message)
-        socket.send(encrypted)
-        print("Message sent")
-
-        #Server's response
-        server_response = (socket.recv(2048))
-        server_response = server_response.decode()
-        if server_response == "Server: OK":
-            print ("Server decrypted message successfully")
-
-
-    #Push Msg1, X1, Tu and SID
 
 if __name__ == "__main__":
     # Create Socket
@@ -113,6 +131,8 @@ if __name__ == "__main__":
 
     # Random Nonce
     Ru = secrets.token_bytes(8)[2:-1]
+
+    keyS = generate_key()
 
     # User input for potential Vehicle Name (Registration)
     response = socket.recv(2048)
