@@ -40,13 +40,11 @@ HashTable = {}
 def aes_encrypt(plaintext, key):
     aes = pyaes.AESModeOfOperationCTR(key)    
     ciphertext = aes.encrypt(plaintext)
-    print("here_encrypted_server")
     return ciphertext
 
 def aes_decrypt(ciphertext, key):
     aes = pyaes.AESModeOfOperationCTR(key)
     decrypted = aes.decrypt(ciphertext).decode('utf-8')
-    print("here_decrypted_server")
     return decrypted
 
 def hash(input_bytes):

@@ -27,13 +27,11 @@ def generateRandomBytes(num_bytes):
 def aes_encrypt(plaintext, key):
     aes = pyaes.AESModeOfOperationCTR(key)    
     ciphertext = aes.encrypt(plaintext)
-    print("here_encytped_client")
     return ciphertext
 
 def aes_decrypt(ciphertext, key):
     aes = pyaes.AESModeOfOperationCTR(key)
     decrypted = aes.decrypt(ciphertext).decode('utf-8')
-    print("here_decrypted_client")
     return decrypted
 
 def handle_recv(sock, key):
