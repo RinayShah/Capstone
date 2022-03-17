@@ -4,10 +4,7 @@ import hashlib
 from Crypto import Random
 import secrets
 from time import time_ns
-from Crypto.Cipher import DES
 import string
-from Crypto.Cipher import AES
-import base64, os
 import pyaes
 
 

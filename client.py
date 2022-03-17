@@ -4,11 +4,8 @@ import secrets
 import hashlib
 from time import time_ns
 from Cryptodome import Random
-from Crypto.Cipher import DES
 import string
 import threading
-from Crypto.Cipher import AES
-import base64, os
 import pyaes
 
 charList = string.ascii_lowercase + string.digits
