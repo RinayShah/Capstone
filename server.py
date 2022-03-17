@@ -6,6 +6,10 @@ import secrets
 from time import time_ns
 from Crypto.Cipher import DES
 import string
+from Crypto.Cipher import AES
+import base64, os
+import pyaes
+
 
 charList = string.ascii_lowercase + string.digits
 
@@ -33,21 +37,17 @@ socket.listen(5)
 # Hash Table for Vehicle Parameters
 HashTable = {}
 
+def aes_encrypt(plaintext, key):
+    aes = pyaes.AESModeOfOperationCTR(key)    
+    ciphertext = aes.encrypt(plaintext)
+    print("here_encrypted_server")
+    return ciphertext
 
-def append_space_padding(text, blocksize=8):
-    while len(text) % blocksize != 0:
-        text += ' '
-    return text
-
-def des_encrypt(plaintext, key):
-    des = DES.new(key, DES.MODE_ECB)
-    cipher = des.encrypt(str.encode(append_space_padding(plaintext)))
-    return cipher
-
-def des_decrypt(ciphertext, key):
-    des = DES.new(key, DES.MODE_ECB)
-    plain = des.decrypt(ciphertext).decode()
-    return plain
+def aes_decrypt(ciphertext, key):
+    aes = pyaes.AESModeOfOperationCTR(key)
+    decrypted = aes.decrypt(ciphertext).decode('utf-8')
+    print("here_decrypted_server")
+    return decrypted
 
 def hash(input_bytes):
     sha3_256 = hashlib.sha3_256(input_bytes)
@@ -63,7 +63,7 @@ def handle_recv(sock, key):
     while True:
         msg = sock.recv(1024)
         print(f'\nCipher received: {msg}')
-        print(f'Message received: {des_decrypt(msg, key)}')
+        print(f'Message received: {aes_decrypt(msg, key)}')
         print('Enter a message: ')
 
 def client_registration(connection, address):
@@ -186,7 +186,7 @@ def authenticationTA_1(connection, A1, b1, Ks, Huid, Hpw):
     print("w, X4 sent to Vehicle as per Protocol")
     print("\n")
     
-    session_key = Sk[:8]
+    session_key = Sk
     thread1 = threading.Thread(target=handle_recv, args=(connection, session_key))
     thread1.start()
     send_client_message(connection,session_key)
@@ -227,7 +227,7 @@ def authenticationVehicleServer(Msg2, X2, Tc, HCID, Ks):
 def send_client_message(connection,session_key):
     while True:
         msgToSend = input('Enter a message: ')
-        cipherMsg = des_encrypt(msgToSend, session_key)
+        cipherMsg = aes_encrypt(msgToSend, session_key)
         connection.send(cipherMsg)
 
 def start():

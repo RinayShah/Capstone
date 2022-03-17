@@ -7,6 +7,9 @@ from Cryptodome import Random
 from Crypto.Cipher import DES
 import string
 import threading
+from Crypto.Cipher import AES
+import base64, os
+import pyaes
 
 charList = string.ascii_lowercase + string.digits
 
@@ -21,26 +24,23 @@ def bytes_xor(one, two):
 def generateRandomBytes(num_bytes):
     return Random.new().read(num_bytes)
 
-def append_space_padding(text, blocksize=8):
-    while len(text) % blocksize != 0:
-        text += ' '
-    return text
+def aes_encrypt(plaintext, key):
+    aes = pyaes.AESModeOfOperationCTR(key)    
+    ciphertext = aes.encrypt(plaintext)
+    print("here_encytped_client")
+    return ciphertext
 
-def des_encrypt(plaintext, key):
-    des = DES.new(key, DES.MODE_ECB)
-    cipher = des.encrypt(str.encode(append_space_padding(plaintext)))
-    return cipher
-
-def des_decrypt(ciphertext, key):
-    des = DES.new(key, DES.MODE_ECB)
-    plain = des.decrypt(ciphertext).decode()
-    return plain
+def aes_decrypt(ciphertext, key):
+    aes = pyaes.AESModeOfOperationCTR(key)
+    decrypted = aes.decrypt(ciphertext).decode('utf-8')
+    print("here_decrypted_client")
+    return decrypted
 
 def handle_recv(sock, key):
     while True:
         msg = sock.recv(1024)
         print(f'\nCipher received: {msg}')
-        print(f'Message received: {des_decrypt(msg, key)}')
+        print(f'Message received: {aes_decrypt(msg,key)}')
         print('Enter a message: ')
 
 def authentication(socket,Huid,Hpw,b1):
@@ -92,7 +92,7 @@ def authentication(socket,Huid,Hpw,b1):
     print(f'Generated Sk* {Sk_star.hex()}')
     print("\n")
     
-    session_key = Sk_star[:8]
+    session_key = Sk_star
     thread1 = threading.Thread(target=handle_recv, args=(socket, session_key))
     thread1.start()
     send_server_message(socket,session_key)
@@ -101,7 +101,7 @@ def authentication(socket,Huid,Hpw,b1):
 def send_server_message(socket,session_key):
     while True:
         msgToSend = input('Enter a message: ')
-        cipherMsg = des_encrypt(msgToSend, session_key)
+        cipherMsg = aes_encrypt(msgToSend,session_key)
         socket.send(cipherMsg)
 
 
