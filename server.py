@@ -1,17 +1,10 @@
 import socket
 import threading
 import hashlib
-from Crypto.PublicKey import RSA
 from Crypto import Random
-from Crypto.Cipher import PKCS1_OAEP
 import secrets
 from time import time_ns
-from sqlalchemy import false
-import ast
 from Crypto.Cipher import DES
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_OAEP
-import random
 import string
 
 charList = string.ascii_lowercase + string.digits
@@ -40,9 +33,6 @@ socket.listen(5)
 # Hash Table for Vehicle Parameters
 HashTable = {}
 
-random_generator = Random.new().read
-private_key = RSA.generate(1024, random_generator)
-public_key = private_key.publickey()
 
 def append_space_padding(text, blocksize=8):
     while len(text) % blocksize != 0:
@@ -51,8 +41,8 @@ def append_space_padding(text, blocksize=8):
 
 def des_encrypt(plaintext, key):
     des = DES.new(key, DES.MODE_ECB)
-    cypher = des.encrypt(str.encode(append_space_padding(plaintext)))
-    return cypher
+    cipher = des.encrypt(str.encode(append_space_padding(plaintext)))
+    return cipher
 
 def des_decrypt(ciphertext, key):
     des = DES.new(key, DES.MODE_ECB)
@@ -83,12 +73,10 @@ def client_registration(connection, address):
 
     connection.send(str.encode('Username: '))
     Huid = connection.recv(2048)
-    #Huid = Huid.decode()
 
     # Receive Password
     connection.send(str.encode('Password: '))
     Hpw = connection.recv(2048)
-    #Hpw = Hpw.decode()
 
     # Calculate Parameter A1
     Huid_Ks = Huid + Ks
@@ -96,10 +84,6 @@ def client_registration(connection, address):
 
     # Calculate Parameter B1
     Huid_Hpw = hash(Huid + Hpw)
-
-   # b1 
-    #a = bytes()
-    #b = int(temp, base=16)
     b1 = bytes_xor(a1, Huid_Hpw)
 
 
@@ -123,7 +107,6 @@ def client_registration(connection, address):
         connection.send(HashTable[a1])
         print("B1 Sent to Client as per Registration Process")
         print("_______________________________________________________")
-
 
         # Call Authentication Method
         authenticationTA_1(connection,a1,b1,Ks,Huid,Hpw)
@@ -157,8 +140,8 @@ def authenticationTA_1(connection, A1, b1, Ks, Huid, Hpw):
     else:
         print('\nVehicle Msg1 does not match Msg1\n')
 
-    CID = (0).to_bytes(length=8, byteorder='big') #we may not need this if it is being passed
-    SID = (0).to_bytes(length=8, byteorder='big') #we may not need this if it is being passed
+    CID = (0).to_bytes(length=8, byteorder='big')
+    SID = (0).to_bytes(length=8, byteorder='big')
     HCID = hash(Huid + CID + SID)
     
     Tc = time_ns().to_bytes(length=8, byteorder='big')  # Generate time stamp
@@ -194,8 +177,6 @@ def authenticationTA_1(connection, A1, b1, Ks, Huid, Hpw):
     X4 = hash(Nu_Star + Ns_star + Hpw)
     
     # Print parameters being sent to Vehicle
-    
-    
     connection.send(w)
     connection.recv(2048)
     connection.send(X4)
@@ -241,7 +222,6 @@ def authenticationVehicleServer(Msg2, X2, Tc, HCID, Ks):
     print("\n_______________________________________________________\n")
 
     return(Msg3, X3, Ts, Sk)
-
 
 
 def send_client_message(connection,session_key):

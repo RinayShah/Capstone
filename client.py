@@ -1,15 +1,10 @@
 from cProfile import run
 import socket
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_OAEP
 import secrets
 import hashlib
 from time import time_ns
 from Cryptodome import Random
 from Crypto.Cipher import DES
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_OAEP
-import random
 import string
 import threading
 
@@ -26,12 +21,6 @@ def bytes_xor(one, two):
 def generateRandomBytes(num_bytes):
     return Random.new().read(num_bytes)
 
-def generate_key():
-    result = ''
-    for i in range(8):
-        result = result + random.choice(charList)
-    return result
-
 def append_space_padding(text, blocksize=8):
     while len(text) % blocksize != 0:
         text += ' '
@@ -39,8 +28,8 @@ def append_space_padding(text, blocksize=8):
 
 def des_encrypt(plaintext, key):
     des = DES.new(key, DES.MODE_ECB)
-    cypher = des.encrypt(str.encode(append_space_padding(plaintext)))
-    return cypher
+    cipher = des.encrypt(str.encode(append_space_padding(plaintext)))
+    return cipher
 
 def des_decrypt(ciphertext, key):
     des = DES.new(key, DES.MODE_ECB)
@@ -76,9 +65,7 @@ def authentication(socket,Huid,Hpw,b1):
     socket.send(Tu)
     print(f'Tu {Tu}')
     print("\nMsg1, X1, Tu sent to Trusted Authority as per Protocol")
-
     print("\n_______________________________________________________\n")
-
 
     w = socket.recv(2048)
     print('\nReceived w: ', w)
@@ -103,7 +90,6 @@ def authentication(socket,Huid,Hpw,b1):
 
     Sk_star = hash(HCID + Ns_star + Nu)
     print(f'Generated Sk* {Sk_star.hex()}')
-
     print("\n")
     
     session_key = Sk_star[:8]
@@ -129,8 +115,6 @@ if __name__ == "__main__":
     socket.connect(('127.0.0.1', port))
     # Random Nonce
     Ru = secrets.token_bytes(8)[2:-1]
-
-    keyS = generate_key()
 
     # User input for potential Vehicle Name (Registration)
     response = socket.recv(2048)
