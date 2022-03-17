@@ -8,15 +8,15 @@ from time import time_ns
 from Cryptodome import Random
 
 # VEHICLE
-def hash(input_bytes):
-    sha3_256 = hashlib.sha3_256(input_bytes)
+def hash(bytes):
+    sha3_256 = hashlib.sha3_256(bytes)
     return sha3_256.digest()
 
 def bytes_xor(one, two):
     return bytes(a ^ b for (a, b) in zip(one, two))
 
-def generate_random_n_bytes(n):
-    return Random.new().read(n)
+def generate_random_n_bytes(num_bytes):
+    return Random.new().read(num_bytes)
 
 def authentication(socket,Huid,Hpw,b1):
  
