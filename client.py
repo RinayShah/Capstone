@@ -3,7 +3,7 @@ import socket
 import secrets
 import hashlib
 from time import time_ns
-from Cryptodome import Random
+from Crypto import Random
 import string
 import threading
 import pyaes
