@@ -95,7 +95,7 @@ def client_registration(connection, address):
             print("{:<8} || {:<20}\n".format(str(label), str(num)))
         print("_______________________________________________________")
 
-        # Send username and password to client for future use. ENCODE BEFORE SENDING for security
+        # Send username and password to client for future use. ENCODE BEFORE SENDING
         connection.send(a1)
         print("\nA1 Sent to Client as per Registration Process")
         temp = connection.recv(2048)
@@ -108,7 +108,6 @@ def client_registration(connection, address):
 
 # Trusted Authority portion of protocol when sending to Vehicle Server
 def authenticationTA_1(connection, A1, b1, Ks, Huid, Hpw):
-    # Second Block
 
     # Receive parameters from Vehicle
     print("\nReceived Parameters from Vehicle: ")
@@ -138,8 +137,9 @@ def authenticationTA_1(connection, A1, b1, Ks, Huid, Hpw):
     CID = (0).to_bytes(length=8, byteorder='big')
     SID = (0).to_bytes(length=8, byteorder='big')
     HCID = hash(Huid + CID + SID)
-    
-    Tc = time_ns().to_bytes(length=8, byteorder='big')  # Generate time stamp
+
+    # Generate time stamp
+    Tc = time_ns().to_bytes(length=8, byteorder='big')  
     Msg2 = hash(HCID + Ks + Tc + Nu_Star)
     ks_hash = hash(Ks)
     X2 = bytes_xor(Nu_Star, ks_hash)
@@ -218,7 +218,7 @@ def authenticationVehicleServer(Msg2, X2, Tc, HCID, Ks):
 
     return(Msg3, X3, Ts, Sk)
 
-
+# Sending client message
 def send_client_message(connection,session_key):
     while True:
         msgToSend = input('Enter a message: ')

@@ -10,7 +10,7 @@ import pyaes
 
 charList = string.ascii_lowercase + string.digits
 
-# VEHICLE
+# Vehicle
 def hash(bytes):
     sha3_256 = hashlib.sha3_256(bytes)
     return sha3_256.digest()
@@ -40,7 +40,7 @@ def handle_recv(sock, key):
 
 def authentication(socket,Huid,Hpw,b1):
  
-    # First Block following formula in figure 3
+    # First block of figure 3 starts here:
     A1_Auth = bytes_xor(b1,hash(Huid + Hpw))
 
     Tu = time_ns().to_bytes(length=8, byteorder='big')
